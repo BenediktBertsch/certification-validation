@@ -1,0 +1,16 @@
+﻿@page "/certificate"
+@using CaseStudy_VerificationOfCertificates.Data
+@inject WeatherForecastService ForecastService
+
+<PageTitle>Zertifikate verwalten</PageTitle>
+
+<h1>Zertifikate verwalten</h1>
+
+@code {
+    private WeatherForecast[]? forecasts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        forecasts = await ForecastService.GetForecastAsync(DateOnly.FromDateTime(DateTime.Now));
+    }
+}

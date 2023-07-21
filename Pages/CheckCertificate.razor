@@ -1,0 +1,63 @@
+﻿@page "/checkcertificate"
+@using CaseStudy_VerificationOfCertificates.Data
+@using System
+@using System.IO
+@using Microsoft.AspNetCore.Hosting
+@using Microsoft.Extensions.Logging
+@inject ILogger<CheckCertificate> Logger
+@inject IWebHostEnvironment Environment
+
+<PageTitle>Zertifikat prüfen</PageTitle>
+
+<h1>Zertifikat prüfen</h1>
+
+<p>
+    <label>
+        Zertifikatsdatei hochladen:
+        <InputFile OnChange="@LoadFile"/>
+    </label>
+</p>
+
+@if (isLoading)
+{
+    <p>Uploading...</p>
+}
+else
+{
+    <ul>
+            <li>
+                <ul>
+                    <li>Zeritifizierung: @certificateName</li>
+                    <li>Name des Zertifizierten: @certifiedPerson</li>
+                    <li>Zertifikat wurde ausgestellt am: @createdAt</li>
+                    <li>Zertifikat läuft ab am: @expiresAt</li>
+                </ul>
+            </li>
+        
+    </ul>
+}
+
+@code {
+    private IBrowserFile file;
+    private long maxFileSize = 1024 * 15;
+    private int maxAllowedFiles = 1;
+    private bool isLoading = false;
+    private string certificateName = "";
+    private string certifiedPerson = "";
+    private DateTime createdAt = new DateTime(1);
+    private DateTime expiresAt = new DateTime(1);
+
+    private async Task LoadFile(InputFileChangeEventArgs e)
+    {
+        isLoading = true;
+        file = e.File;
+        
+        // Implement reading data from certificate which are needed:
+        // Certificate type: AWS DevOps, etc..
+        // Name of the person
+        // When was it created
+        // When will it be expired
+
+        isLoading = false;
+    }
+}
