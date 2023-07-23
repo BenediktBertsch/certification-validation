@@ -1,16 +1,81 @@
-﻿@page "/certificate"
+﻿@page "/certificates"
+@using CaseStudy_VerificationOfCertificates.Controllers;
 @using CaseStudy_VerificationOfCertificates.Data
-@inject WeatherForecastService ForecastService
+@using System.Security.Cryptography.X509Certificates;
+@using System.Security.Cryptography;
+@using System.Net;
+@using CaseStudy_VerificationOfCertificates.Data.Models;
+@using Microsoft.AspNetCore.Mvc;
+@using Microsoft.EntityFrameworkCore;
+@inject IJSRuntime JS
+@inject CaseStudy_VerificationOfCertificates.Data.ApplicationDbContext dbContext;
+@*@inject CaseStudy_VerificationOfCertificates.Controllers.HashController;*@ @*must comment*@
 
 <PageTitle>Zertifikate verwalten</PageTitle>
 
 <h1>Zertifikate verwalten</h1>
 
-@code {
-    private WeatherForecast[]? forecasts;
+<fieldset>
+    <legend>Certification data</legend>
+    <div>
+        <label>Name des Zertifizierten:</label>
+        <input @bind="_personName" name="Zertifizierte Person" />
+    </div>
+    <div>
+        <label>Zertifizierung:</label>
+        <input @bind="_certificationName" name="Zertifizierung" />
+    </div>
+</fieldset>
+<button @onclick="generateAndDownloadCert">
+    Zertifikat generieren
+</button>
 
-    protected override async Task OnInitializedAsync()
+@code {
+    string _certificationName = "";
+    string _personName = "";
+    HashController? _hashController;
+
+    protected override async Task OnInitializedAsync() => _hashController = new HashController(dbContext);
+
+    // Generate certificate on "Create new"
+    private X509Certificate2 GenerateSelfSignedCertificate()
     {
-        forecasts = await ForecastService.GetForecastAsync(DateOnly.FromDateTime(DateTime.Now));
+        SubjectAlternativeNameBuilder sanBuilder = new SubjectAlternativeNameBuilder();
+        sanBuilder.AddUserPrincipalName(_certificationName);
+        sanBuilder.AddUserPrincipalName(_personName);
+        X500DistinguishedName issuerName = new X500DistinguishedName("CN=TÜV Süd");
+        using (ECDsa ecdsa = ECDsa.Create())
+        {
+            var request = new CertificateRequest(issuerName, ecdsa, HashAlgorithmName.SHA512);
+
+            request.CertificateExtensions.Add(
+                new X509EnhancedKeyUsageExtension(
+                    new OidCollection { new Oid("1.3.6.1.5.5.7.3.2") }, false));
+
+            request.CertificateExtensions.Add(sanBuilder.Build());
+
+            return request.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.UtcNow.AddYears(4));
+        }
+    }
+
+    // Create stream object and return it
+    private Stream GetFileStream()
+    {
+        var cert = GenerateSelfSignedCertificate();
+        _hashController.InsertHash(cert.GetCertHashString());
+        var fileStream = new MemoryStream(cert.Export(X509ContentType.Cert));
+        return fileStream;
+    }
+
+    // Start generation and download
+    private async Task generateAndDownloadCert()
+    {
+        if (_personName == "" && _certificationName == "")
+        {
+            return;
+        }
+        var fileStream = GetFileStream();
+        using var streamRef = new DotNetStreamReference(stream: fileStream);
+        await JS.InvokeVoidAsync("downloadFileFromStream", "Certificate.crt", streamRef);
     }
 }

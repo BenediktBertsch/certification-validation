@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+﻿using CaseStudy_VerificationOfCertificates.Data.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace CaseStudy_VerificationOfCertificates.Data
@@ -9,5 +11,7 @@ namespace CaseStudy_VerificationOfCertificates.Data
             : base(options)
         {
         }
+
+        public virtual DbSet<HashModel> Hashes { get; set; }
     }
 }

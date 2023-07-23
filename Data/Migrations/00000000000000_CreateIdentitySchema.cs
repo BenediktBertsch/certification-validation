@@ -48,6 +48,18 @@ namespace CaseStudy_VerificationOfCertificates.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Hashes",
+                columns: table => new
+                {
+                    Id = table.Column<int>(nullable: false).Annotation("Sqlite:Autoincrement", true),
+                    Hash = table.Column<string>(maxLength: 40, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Hashes", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "AspNetRoleClaims",
                 columns: table => new
                 {

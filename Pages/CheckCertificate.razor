@@ -18,7 +18,7 @@
     </label>
 </p>
 
-@if (isLoading)
+@if (file != null && isLoading)
 {
     <p>Uploading...</p>
 }
@@ -38,9 +38,7 @@ else
 }
 
 @code {
-    private IBrowserFile file;
-    private long maxFileSize = 1024 * 15;
-    private int maxAllowedFiles = 1;
+    private IBrowserFile? file = null;
     private bool isLoading = false;
     private string certificateName = "";
     private string certifiedPerson = "";
@@ -52,6 +50,9 @@ else
         isLoading = true;
         file = e.File;
         
+        // First check, is the cert valid?
+        // If then read the data
+
         // Implement reading data from certificate which are needed:
         // Certificate type: AWS DevOps, etc..
         // Name of the person
