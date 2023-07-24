@@ -1,11 +1,15 @@
 ﻿@page "/checkcertificate"
+@using CaseStudy_VerificationOfCertificates.Controllers;
 @using CaseStudy_VerificationOfCertificates.Data
 @using System
 @using System.IO
 @using Microsoft.AspNetCore.Hosting
 @using Microsoft.Extensions.Logging
+@using System.Security.Cryptography.X509Certificates;
+@using System.Security.Cryptography;
+@using System.Globalization;
 @inject ILogger<CheckCertificate> Logger
-@inject IWebHostEnvironment Environment
+@inject CaseStudy_VerificationOfCertificates.Data.ApplicationDbContext dbContext;
 
 <PageTitle>Zertifikat prüfen</PageTitle>
 
@@ -18,13 +22,19 @@
     </label>
 </p>
 
-@if (file != null && isLoading)
+@if (started)
 {
-    <p>Uploading...</p>
-}
-else
-{
-    <ul>
+    @if (error)
+    {
+        <p>@errorMsg</p>
+    }
+    else if (isLoading)
+    {
+        <p>Uploading...</p>
+    }
+    else
+    {
+        <ul>
             <li>
                 <ul>
                     <li>Zeritifizierung: @certificateName</li>
@@ -33,31 +43,73 @@ else
                     <li>Zertifikat läuft ab am: @expiresAt</li>
                 </ul>
             </li>
-        
-    </ul>
+            <li>Status: @status</li>
+        </ul>
+    }
 }
 
 @code {
-    private IBrowserFile? file = null;
     private bool isLoading = false;
+    private bool started = false;
     private string certificateName = "";
     private string certifiedPerson = "";
-    private DateTime createdAt = new DateTime(1);
-    private DateTime expiresAt = new DateTime(1);
+    private string createdAt = "";
+    private string expiresAt = "";
+    private string status = "nicht aktiv";
+    private bool error = false;
+    private string errorMsg = "";
+    HashController? _hashController;
 
+    protected override async Task OnInitializedAsync() => _hashController = new HashController(dbContext);
     private async Task LoadFile(InputFileChangeEventArgs e)
     {
-        isLoading = true;
-        file = e.File;
-        
-        // First check, is the cert valid?
-        // If then read the data
+        // Reset error
+        error = false;
 
-        // Implement reading data from certificate which are needed:
-        // Certificate type: AWS DevOps, etc..
-        // Name of the person
-        // When was it created
-        // When will it be expired
+        // Check data type
+        if (e.File.Name.Split('.')[1] != "crt")
+        {
+            error = true;
+            errorMsg = "Falscher Datentyp hochgeladen!";
+            return;
+        }
+
+        // Start upload
+        started = true;
+        isLoading = true;
+
+        // Reset variables
+        certificateName = "";
+        certifiedPerson = "";
+        createdAt = "";
+        expiresAt = "";
+        status = "nicht aktiv";
+
+        // Read the uploading file and create local cert object
+        var buffer = new byte[e.File.Size];
+        await e.File.OpenReadStream().ReadAsync(buffer);
+        var x509 = new X509Certificate2(buffer);
+
+        // Check if the cert hash is saved in the db
+        if (!_hashController!.CheckHash(x509.GetCertHashString()))
+        {
+            error = true;
+            errorMsg = "Das Zertifikat ist bei uns nicht hinterlegt!";
+            isLoading = false;
+            return;
+        }
+
+        // Read necessary data
+        certifiedPerson = x509.GetNameInfo(X509NameType.UpnName, false);
+        certificateName = x509.GetNameInfo(X509NameType.DnsName, false);
+        expiresAt = x509.GetExpirationDateString();
+        createdAt = x509.GetEffectiveDateString();
+
+        // Check if the cert is still valid of the date
+        if (x509.NotAfter >= DateTime.Now)
+        {
+            status = "aktiv";
+        }
 
         isLoading = false;
     }

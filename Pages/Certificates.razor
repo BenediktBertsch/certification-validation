@@ -9,7 +9,6 @@
 @using Microsoft.EntityFrameworkCore;
 @inject IJSRuntime JS
 @inject CaseStudy_VerificationOfCertificates.Data.ApplicationDbContext dbContext;
-@*@inject CaseStudy_VerificationOfCertificates.Controllers.HashController;*@ @*must comment*@
 
 <PageTitle>Zertifikate verwalten</PageTitle>
 
@@ -41,7 +40,7 @@
     private X509Certificate2 GenerateSelfSignedCertificate()
     {
         SubjectAlternativeNameBuilder sanBuilder = new SubjectAlternativeNameBuilder();
-        sanBuilder.AddUserPrincipalName(_certificationName);
+        sanBuilder.AddDnsName(_certificationName);
         sanBuilder.AddUserPrincipalName(_personName);
         X500DistinguishedName issuerName = new X500DistinguishedName("CN=TÜV Süd");
         using (ECDsa ecdsa = ECDsa.Create())
@@ -62,7 +61,7 @@
     private Stream GetFileStream()
     {
         var cert = GenerateSelfSignedCertificate();
-        _hashController.InsertHash(cert.GetCertHashString());
+        _hashController!.InsertHash(cert.GetCertHashString());
         var fileStream = new MemoryStream(cert.Export(X509ContentType.Cert));
         return fileStream;
     }
